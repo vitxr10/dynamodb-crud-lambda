@@ -51,10 +51,10 @@ Resources:
   Properties:
     TableName: UsersTB
     AttributeDefinitions:
-      - AttributeName: Id
+      - AttributeName: id
         AttributeType: S
     KeySchema:
-      - AttributeName: Id
+      - AttributeName: id
         KeyType: HASH
     ProvisionedThroughput:
       ReadCapacityUnits: 2

@@ -15,9 +15,24 @@ Resources:
   DynamoDbCrudFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: DynamoDbCrudFunction
+      CodeUri: .
       Handler: br.com.vitxr.dynamodbcrud.Handler::handleRequest
       Runtime: java21
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DescribeTable
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: !GetAtt UserTable.Arn
       Architectures:
       - x86_64
       MemorySize: 512
@@ -30,6 +45,20 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
+
+  UserTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: UsersTB
+    AttributeDefinitions:
+      - AttributeName: Id
+        AttributeType: S
+    KeySchema:
+      - AttributeName: Id
+        KeyType: HASH
+    ProvisionedThroughput:
+      ReadCapacityUnits: 2
+      WriteCapacityUnits: 2
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group

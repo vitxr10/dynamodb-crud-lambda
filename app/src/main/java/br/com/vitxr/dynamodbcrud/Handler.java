@@ -1,49 +1,52 @@
 package br.com.vitxr.dynamodbcrud;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import br.com.vitxr.dynamodbcrud.dto.User;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
+import br.com.vitxr.dynamodbcrud.repository.UserRepository;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private static final AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
-    private static final DynamoDBMapper dynamoDBMapper = new DynamoDBMapper(client);
+    private static final Logger logger = LoggerFactory.getLogger(Handler.class);
+    private final UserRepository userRepository = new UserRepository();
 
     public APIGatewayProxyResponseEvent handleRequest(final APIGatewayProxyRequestEvent input, final Context context) {
+        logger.info("Event: {}", input.getBody());
+
         String httpMethod = input.getHttpMethod();
         String output;
         int statusCode;
 
         switch (httpMethod) {
             case "GET":
-                output = getUsers();
+                logger.info("Getting users...");
+                output = userRepository.getUsers();
                 statusCode = 200;
                 break;
             case "POST":
-                output = createUser(input.getBody());
+                logger.info("Creating user...");
+                output = userRepository.createUser(input.getBody());
                 statusCode = 201;
                 break;
             case "PUT":
-                output = updateUser(input.getBody());
-                statusCode = 200;
+                logger.info("Updating user...");
+                output = userRepository.updateUser(input.getBody());
+                statusCode = output.equals("true") ? 200 : 404;
                 break;
             case "DELETE":
-                output = deleteUser(input.getBody());
-                statusCode = 200;
+                logger.info("Deleting user...");
+                output = userRepository.deleteUser(input.getBody());
+                statusCode = output.equals("true") ? 200 : 404;
                 break;
             default:
+                logger.info("Invalid HTTP Method");
                 output = "Invalid HTTP Method";
                 statusCode = 400;
                 break;
@@ -57,41 +60,5 @@ public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIG
                 .withStatusCode(statusCode)
                 .withHeaders(headers)
                 .withBody(output);
-    }
-
-    private String getUsers() {
-        List<User> users = dynamoDBMapper.scan(User.class, new DynamoDBScanExpression());
-        return new Gson().toJson(users);
-    }
-
-    private String createUser(String requestBody) {
-        User user = new Gson().fromJson(requestBody, User.class);
-        dynamoDBMapper.save(user);
-        return "User created: " + user.getId();
-    }
-
-    private String updateUser(String requestBody) {
-        User updatedUser = new Gson().fromJson(requestBody, User.class);
-        User existingUser = dynamoDBMapper.load(User.class, updatedUser.getId());
-        if (existingUser != null) {
-            existingUser.setName(updatedUser.getName());
-            existingUser.setEmail(updatedUser.getEmail());
-            existingUser.setPassword(updatedUser.getPassword());
-            dynamoDBMapper.save(existingUser);
-            return "User updated: " + existingUser.getId();
-        } else {
-            return "User not found";
-        }
-    }
-
-    private String deleteUser(String requestBody) {
-        User userToDelete = new Gson().fromJson(requestBody, User.class);
-        User existingUser = dynamoDBMapper.load(User.class, userToDelete.getId());
-        if (existingUser != null) {
-            dynamoDBMapper.delete(existingUser);
-            return "User deleted: " + existingUser.getId();
-        } else {
-            return "User not found";
-        }
     }
 }

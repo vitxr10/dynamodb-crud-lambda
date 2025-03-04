@@ -3,9 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   dynamodb-crud-lambda
 
-  Sample SAM Template for dynamodb-crud-lambda
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 20
@@ -15,7 +12,7 @@ Resources:
   DynamoDbCrudFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: .
+      CodeUri: app/
       Handler: br.com.vitxr.dynamodbcrud.Handler::handleRequest
       Runtime: java21
       Policies:
@@ -34,31 +31,31 @@ Resources:
                 - dynamodb:Scan
               Resource: !GetAtt UserTable.Arn
       Architectures:
-      - x86_64
+        - x86_64
       MemorySize: 512
       Environment: 
         Variables:
           PARAM1: VALUE
       Events:
-        HelloWorld:
+        DynamoDbCrudFunction:
           Type: Api 
           Properties:
             Path: /{proxy+}
             Method: ANY
 
   UserTable:
-  Type: AWS::DynamoDB::Table
-  Properties:
-    TableName: UsersTB
-    AttributeDefinitions:
-      - AttributeName: id
-        AttributeType: S
-    KeySchema:
-      - AttributeName: id
-        KeyType: HASH
-    ProvisionedThroughput:
-      ReadCapacityUnits: 2
-      WriteCapacityUnits: 2
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UsersTB
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
@@ -67,13 +64,15 @@ Resources:
         Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
       ResourceQuery:
         Type: CLOUDFORMATION_STACK_1_0
+
   ApplicationInsightsMonitoring:
     Type: AWS::ApplicationInsights::Application
     Properties:
       ResourceGroupName:
         Ref: ApplicationResourceGroup
       AutoConfigurationEnabled: 'true'
+
 Outputs:
-  HelloWorldApi:
+  DynamoDbCrudApi:
     Description: API Gateway endpoint URL for Prod stage for Hello World function
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
